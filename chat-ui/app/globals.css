@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: #333333;
+  --background: #ffffff;
+  --primary: #f97316;
+  --secondary: #f3f4f6;
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+body {
+  color: var(--foreground);
+  background-color: var(--background);
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+/* Aseguramos que los elementos ocupen toda la pantalla */
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+/* Reset input styles */
+input {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+
+input:focus {
+  outline: none;
+}
+
+/* Alinear texto verticalmente */
+.vertical-center {
+  display: flex;
+  align-items: center;
+}
+
+/* Estilos específicos para la UI de Claude */
+.claude-header {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.claude-input {
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem;
+  margin-top: auto;
+}
+
+.claude-button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Add placeholder style for contentEditable div */
+[contentEditable=true]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* Remove all the blob, shadow-playful, and animation styles */
+
+/* Market chart animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes candlePulse {
+  0% { transform: scaleY(0.8); opacity: 0.7; }
+  50% { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(0.8); opacity: 0.7; }
+}
+
+@keyframes wickPulse {
+  0% { transform: scaleY(0.7); opacity: 0.6; }
+  50% { transform: scaleY(1.2); opacity: 0.9; }
+  100% { transform: scaleY(0.7); opacity: 0.6; }
+}
+
+@keyframes moveLine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes ticker {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Financial data styling */
+.financial-data {
+  word-break: break-word;
+}
+
+.financial-data pre {
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.75rem;
+  margin: 8px 0;
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.financial-data .ticker-symbol {
+  font-weight: bold;
+  font-family: monospace;
+}
+
+/* Retro styling elements */
+.retro-button {
+  border: 2px solid black;
+  box-shadow: 4px 4px 0 0 rgba(0,0,0,1);
+  transition: all 0.2s ease;
+}
+
+.retro-button:hover {
+  box-shadow: 6px 6px 0 0 rgba(0,0,0,1);
+  transform: translate(-2px, -2px);
+}
+
+.retro-button:active {
+  box-shadow: 2px 2px 0 0 rgba(0,0,0,1);
+  transform: translate(2px, 2px);
+}
