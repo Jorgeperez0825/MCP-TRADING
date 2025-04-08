@@ -1,11 +1,12 @@
 import React from 'react';
 
 interface LoadingAnimationProps {
-  language?: 'en' | 'es';
+  language?: 'en' | 'es'; // Still keep this for backward compatibility
 }
 
 const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ language = 'en' }) => {
-  const loadingText = language === 'es' ? "Analizando mercados..." : "Analyzing markets...";
+  // Always use English text 
+  const loadingText = "Analyzing markets...";
   
   return (
     <div className="flex flex-col items-center justify-center p-4 bg-white rounded-lg border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]">

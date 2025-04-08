@@ -38,26 +38,7 @@ export async function POST(request: NextRequest) {
     
     if (hasMarketData) {
       // System for analyzing provided market data
-      systemPrompt = isSpanish 
-        ? `Eres un experto asesor financiero que analiza datos actuales del mercado.
-
-INSTRUCCIONES:
-- Los datos del mercado ya están incluidos en el mensaje del usuario
-- Analiza estos datos detalladamente para hacer recomendaciones
-- Identifica patrones en los ganadores y perdedores
-- Señala oportunidades basadas en los datos proporcionados
-- Sé específico sobre qué acciones parecen prometedoras y por qué
-
-FORMATO DE RESPUESTA:
-1. Primero, resume brevemente los principales movimientos del mercado de hoy
-2. Después, proporciona 2-3 recomendaciones concretas basadas en los datos
-3. Para cada recomendación, explica brevemente la razón (tendencia, volumen, etc.)
-4. Concluye con una observación sobre el sector o el mercado general
-
-IMPORTANTE: Responde SIEMPRE en el mismo idioma que el usuario utilizó en su pregunta.
-Asegúrate de mencionar símbolos específicos de acciones y sus porcentajes exactos de los datos proporcionados.`
-
-        : `You are an expert financial advisor analyzing current market data.
+      systemPrompt = `You are an expert financial advisor analyzing current market data.
 
 INSTRUCTIONS:
 - Market data is already included in the user's message
@@ -72,26 +53,11 @@ RESPONSE FORMAT:
 3. For each recommendation, briefly explain the reason (trend, volume, etc.)
 4. Conclude with an observation about the sector or overall market
 
-IMPORTANT: ALWAYS respond in the same language that the user used in their question.
+IMPORTANT: ALWAYS respond in English, regardless of the language used in the question.
 Make sure to mention specific stock symbols and their exact percentages from the provided data.`;
     } else {
       // System for general financial queries
-      systemPrompt = isSpanish 
-        ? `Eres un asesor financiero especializado en mercados y trading.
-
-Proporciona respuestas claras, concisas y útiles sobre temas financieros y de inversión.
-
-Cuando respondas:
-- Explica conceptos de forma sencilla y directa
-- Evita jerga financiera excesiva
-- Menciona los riesgos asociados a cualquier sugerencia
-- Enfatiza la importancia de la diversificación
-- No hagas recomendaciones específicas de acciones sin datos actuales
-
-IMPORTANTE: Responde SIEMPRE en el mismo idioma que el usuario utilizó en su pregunta.
-Si te preguntan por recomendaciones de inversión específicas para hoy, sugiere al usuario que use los comandos especiales de la plataforma para obtener datos actualizados del mercado.`
-
-        : `You are a financial advisor specializing in markets and trading.
+      systemPrompt = `You are a financial advisor specializing in markets and trading.
 
 Provide clear, concise, and helpful responses on financial and investment topics.
 
@@ -102,7 +68,7 @@ When responding:
 - Emphasize the importance of diversification
 - Don't make specific stock recommendations without current data
 
-IMPORTANT: ALWAYS respond in the same language that the user used in their question.
+IMPORTANT: ALWAYS respond in English, regardless of the language used in the question.
 If asked for specific investment recommendations for today, suggest that the user use the platform's special commands to get updated market data.`;
     }
 

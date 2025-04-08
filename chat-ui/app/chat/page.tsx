@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, FormEvent, useEffect, useRef } from 'react';
+import { useState, FormEvent, useEffect, useRef, useMemo } from 'react';
 import tradingService from '../services/trading-service';
 import mcpClient from '../services/mcp-client';
 import anthropicService from '../services/anthropic-service';
 import LoadingAnimation from '../components/LoadingAnimation';
+import ToolsModal from '../components/ToolsModal';
 
 interface Message {
   text: string;
@@ -25,7 +26,9 @@ export default function ChatPage() {
   const [mcpError, setMcpError] = useState<string | null>(null);
   const [availableTools, setAvailableTools] = useState<any[]>([]);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [isToolsModalOpen, setIsToolsModalOpen] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   // FAQ buttons configuration instead of command buttons
   const faqButtons = [
@@ -254,7 +257,7 @@ I can help you with financial market data and trading insights. Type your questi
       // Process the message and get a response
       setIsLoading(true);
 
-      // Detect language (simple detection)
+      // Detect language (simple detection) - but always respond in English
       const isSpanish = 
         userMessage.toLowerCase().includes('invertir') || 
         userMessage.toLowerCase().includes('mercado') || 
@@ -280,9 +283,7 @@ I can help you with financial market data and trading insights. Type your questi
         console.log("Investment query detected, getting market data directly");
         try {
           // Get market data directly
-          const loadingMessage = isSpanish 
-            ? "Consultando datos actuales del mercado..." 
-            : "Consulting current market data...";
+          const loadingMessage = "Consulting current market data...";
             
           setMessages(prev => [...prev, { 
             text: loadingMessage, 
@@ -297,15 +298,11 @@ I can help you with financial market data and trading insights. Type your questi
             marketDataJson = await marketData.json();
             console.log("Alpha Vantage data received:", marketDataJson);
           } else {
-            throw new Error(isSpanish 
-              ? "No se pudo conectar con Alpha Vantage" 
-              : "Couldn't connect to Alpha Vantage");
+            throw new Error("Couldn't connect to Alpha Vantage");
           }
           
           // Pass the data to Claude for analysis - use appropriate language
-          let promptWithData = isSpanish
-            ? `Aquí están los datos actuales del mercado:\n${JSON.stringify(marketDataJson, null, 2)}\n\nBasado en estos datos reales actuales, ${userMessage}`
-            : `Here is the current market data:\n${JSON.stringify(marketDataJson, null, 2)}\n\nBased on this real-time data, ${userMessage}`;
+          let promptWithData = `Here is the current market data:\n${JSON.stringify(marketDataJson, null, 2)}\n\nBased on this real-time data, ${userMessage}`;
           
           // Call Claude with the data included
           const claudeResponse = await anthropicService.generateResponse(promptWithData);
@@ -335,36 +332,26 @@ I can help you with financial market data and trading insights. Type your questi
               {"ticker": "SPY", "price": "$518.46", "change_amount": "+$1.24", "change_percentage": "+0.24%", "volume": "58329156"},
               {"ticker": "QQQ", "price": "$438.12", "change_amount": "+$1.67", "change_percentage": "+0.38%", "volume": "32145789"}
             ],
-            "_note": isSpanish 
-              ? "Datos simulados debido a problemas en la conexión con Alpha Vantage" 
-              : "Simulated data due to connection issues with Alpha Vantage"
+            "_note": "Simulated data due to connection issues with Alpha Vantage"
           };
           
-          // Use the mock data with Claude - in appropriate language
-          let promptWithMockData = isSpanish
-            ? `Aquí están los datos del mercado (nota: son datos simulados debido a un problema de conexión):\n${JSON.stringify(mockData, null, 2)}\n\nBasado en estos datos, ${userMessage}`
-            : `Here is the market data (note: this is simulated data due to a connection problem):\n${JSON.stringify(mockData, null, 2)}\n\nBased on this data, ${userMessage}`;
+          // Use the mock data with Claude - in English only
+          let promptWithMockData = `Here is the market data (note: this is simulated data due to a connection problem):\n${JSON.stringify(mockData, null, 2)}\n\nBased on this data, ${userMessage}`;
           
           try {
             const claudeResponse = await anthropicService.generateResponse(promptWithMockData);
             setMessages(prev => {
-              const loadingMessage = isSpanish 
-                ? "Consultando datos actuales del mercado..." 
-                : "Consulting current market data...";
+              const loadingMessage = "Consulting current market data...";
               const withoutLoading = prev.filter(msg => msg.text !== loadingMessage);
               return [...withoutLoading, { text: claudeResponse, isUser: false }];
             });
           } catch (claudeError) {
             console.error("Error with Claude:", claudeError);
             setMessages(prev => {
-              const loadingMessage = isSpanish 
-                ? "Consultando datos actuales del mercado..." 
-                : "Consulting current market data...";
+              const loadingMessage = "Consulting current market data...";
               const withoutLoading = prev.filter(msg => msg.text !== loadingMessage);
               return [...withoutLoading, { 
-                text: isSpanish
-                  ? "No pude obtener datos actualizados del mercado. Como recomendación general, considera diversificar tu portafolio con ETFs como SPY o QQQ."
-                  : "I couldn't get updated market data. As a general recommendation, consider diversifying your portfolio with ETFs like SPY or QQQ.", 
+                text: "I couldn't get updated market data. As a general recommendation, consider diversifying your portfolio with ETFs like SPY or QQQ.", 
                 isUser: false 
               }];
             });
@@ -382,9 +369,7 @@ I can help you with financial market data and trading insights. Type your questi
       } catch (error) {
         console.error("Error calling Claude:", error);
         setMessages(prev => [...prev, { 
-          text: isSpanish
-            ? "Lo siento, tuve un problema para procesar tu solicitud."
-            : "Sorry, I encountered a problem processing your request.", 
+          text: "Sorry, I encountered a problem processing your request.", 
           isUser: false 
         }]);
       } finally {
@@ -410,11 +395,58 @@ I can help you with financial market data and trading insights. Type your questi
     return formattedResponse;
   };
 
+  // Detect mobile device on the client side
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Optimize message rendering
+  const renderMessages = useMemo(() => {
+    return messages.slice(1).map((message, index) => (
+      <div 
+        key={index} 
+        style={{ 
+          marginBottom: '1.5rem', 
+          textAlign: message.isUser ? 'right' : 'left',
+          paddingLeft: message.isUser ? (isMobile ? '5%' : '20%') : 0,
+          paddingRight: message.isUser ? 0 : (isMobile ? '5%' : '20%'),
+        }}
+      >
+        <div style={{
+          display: 'inline-block',
+          padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1rem',
+          borderRadius: '0.5rem',
+          backgroundColor: message.isUser ? '#f0f9ff' : '#f9fafb',
+          color: 'black',
+          textAlign: 'left',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          maxWidth: '100%',
+          overflowWrap: 'break-word',
+          fontSize: isMobile ? '0.8rem' : '0.875rem',
+          fontWeight: '500',
+          border: '2px solid black',
+          boxShadow: '3px 3px 0 0 rgba(0,0,0,1)'
+        }}>
+          {message.text}
+        </div>
+      </div>
+    ));
+  }, [messages, isMobile]);
+
   return (
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column', 
       minHeight: '100vh',
+      maxWidth: '100vw',
+      overflow: 'hidden',
       backgroundColor: 'white',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif',
       position: 'relative',
@@ -426,12 +458,12 @@ I can help you with financial market data and trading insights. Type your questi
           position: 'absolute',
           top: '1rem',
           left: '1rem',
-          maxWidth: '300px',
-          padding: '0.75rem 1rem',
+          maxWidth: isMobile ? '60%' : '300px',
+          padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1rem',
           borderRadius: '0.5rem',
           backgroundColor: '#f9fafb',
           color: 'black',
-          fontSize: '0.875rem',
+          fontSize: isMobile ? '0.75rem' : '0.875rem',
           fontWeight: '500',
           border: '2px solid black',
           boxShadow: '3px 3px 0 0 rgba(0,0,0,1)',
@@ -440,61 +472,37 @@ I can help you with financial market data and trading insights. Type your questi
           👋 Welcome to Trading Agent!
         </div>
       )}
+
+      {/* Tools Modal */}
+      <ToolsModal 
+        isOpen={isToolsModalOpen}
+        onClose={() => setIsToolsModalOpen(false)}
+        availableTools={availableTools}
+        mcpConnected={mcpConnected}
+        mcpError={mcpError}
+      />
       
       <div style={{ 
         flexGrow: 1,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-start',
-        padding: '1rem',
+        padding: isMobile ? '0.5rem' : '1rem',
         overflowY: 'auto',
-        paddingTop: '15vh'
+        paddingTop: isMobile ? '10vh' : '15vh'
       }}>
         <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
-          {/* Chat messages - remove the welcome message from chat flow */}
-          {messages.slice(1).map((message, index) => (
-            <div 
-              key={index} 
-              style={{ 
-                marginBottom: '1.5rem', 
-                textAlign: message.isUser ? 'right' : 'left',
-                paddingLeft: message.isUser ? '20%' : 0,
-                paddingRight: message.isUser ? 0 : '20%',
-              }}
-            >
-              <div style={{
-                display: 'inline-block',
-                padding: '0.75rem 1rem',
-                borderRadius: '0.5rem',
-                backgroundColor: message.isUser ? '#f0f9ff' : '#f9fafb',
-                color: 'black',
-                textAlign: 'left',
-                whiteSpace: 'pre-wrap',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                border: '2px solid black',
-                boxShadow: '3px 3px 0 0 rgba(0,0,0,1)'
-              }}>
-                {message.text}
-              </div>
-            </div>
-          ))}
+          {/* Chat messages */}
+          {renderMessages}
           
           {/* Loading indicator in chat flow */}
           {isLoading && (
             <div style={{ 
               marginBottom: '1.5rem',
               textAlign: 'left',
-              paddingRight: '20%',
+              paddingRight: isMobile ? '5%' : '20%',
             }}>
-              <LoadingAnimation language={
-                input.toLowerCase().includes('invertir') || 
-                input.toLowerCase().includes('mercado') || 
-                input.toLowerCase().includes('recomiendas') || 
-                input.toLowerCase().includes('datos') ||
-                input.toLowerCase().includes('acciones') ||
-                input.toLowerCase().includes('bolsa') ? 'es' : 'en'
-              } />
+              <LoadingAnimation />
             </div>
           )}
           
@@ -502,21 +510,21 @@ I can help you with financial market data and trading insights. Type your questi
         </div>
         
         {/* Add padding div to ensure space for fixed input box */}
-        <div style={{ height: '160px' }}></div>
+        <div style={{ height: isMobile ? '130px' : '160px' }}></div>
         
         {/* Chat input area */}
         <div style={{
           position: 'fixed',
-          bottom: '2rem',
+          bottom: isMobile ? '1rem' : '2rem',
           left: '50%',
           transform: 'translateX(-50%)',
           maxWidth: '800px',
-          width: 'calc(100% - 2rem)',
-          padding: '1rem',
+          width: 'calc(100% - 1.5rem)',
+          padding: isMobile ? '0.75rem' : '1rem',
           borderRadius: '1rem',
           border: '2px solid black',
           backgroundColor: 'white',
-          boxShadow: '6px 6px 0 0 rgba(0,0,0,1)',
+          boxShadow: isMobile ? '4px 4px 0 0 rgba(0,0,0,1)' : '6px 6px 0 0 rgba(0,0,0,1)',
           zIndex: 10
         }}>
           {/* Quick FAQ chips - moved above the input */}
@@ -527,12 +535,12 @@ I can help you with financial market data and trading insights. Type your questi
             marginBottom: '0.75rem'
           }}>
             <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#4B5563' }}>
-              Frequently Asked Questions:
+              {isMobile ? 'FAQs:' : 'Frequently Asked Questions:'}
             </div>
             <div style={{
               display: 'flex', 
               flexWrap: 'wrap',
-              gap: '0.5rem',
+              gap: isMobile ? '0.35rem' : '0.5rem',
             }}>
               {faqButtons.map((button, index) => (
                 <button
@@ -543,26 +551,30 @@ I can help you with financial market data and trading insights. Type your questi
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.375rem 0.75rem',
-                    fontSize: '12px',
+                    gap: isMobile ? '0.25rem' : '0.5rem',
+                    padding: isMobile ? '0.25rem 0.5rem' : '0.375rem 0.75rem',
+                    fontSize: isMobile ? '10px' : '12px',
                     fontWeight: '500',
                     color: 'black',
                     backgroundColor: '#7FFFD4',
                     borderRadius: '1rem',
                     border: '1px solid black',
-                    boxShadow: '2px 2px 0 0 rgba(0,0,0,1)',
+                    boxShadow: isMobile ? '1px 1px 0 0 rgba(0,0,0,1)' : '2px 2px 0 0 rgba(0,0,0,1)',
                     transition: 'all 0.2s ease',
                     cursor: isLoading ? 'not-allowed' : 'pointer'
                   }}
                   onMouseOver={(e) => {
-                    e.currentTarget.style.boxShadow = '3px 3px 0 0 rgba(0,0,0,1)';
+                    if (!isMobile) {
+                      e.currentTarget.style.boxShadow = '3px 3px 0 0 rgba(0,0,0,1)';
+                    }
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.boxShadow = '2px 2px 0 0 rgba(0,0,0,1)';
+                    if (!isMobile) {
+                      e.currentTarget.style.boxShadow = '2px 2px 0 0 rgba(0,0,0,1)';
+                    }
                   }}
                 >
-                  {button.icon}
+                  {isMobile ? null : button.icon}
                   <span>{button.label}</span>
                 </button>
               ))}
@@ -581,7 +593,7 @@ I can help you with financial market data and trading insights. Type your questi
                   m.text.toLowerCase().includes('recomiendas') || 
                   m.text.toLowerCase().includes('acciones')
                 )) 
-                ? "Pregunte sobre acciones, mercados o datos financieros..." 
+                ? "Ask about stocks, markets, or financial data..." 
                 : "Ask about stocks, markets, or financial data..."}
               style={{
                 width: '100%',
@@ -602,63 +614,102 @@ I can help you with financial market data and trading insights. Type your questi
               alignItems: 'center',
               marginTop: '0.75rem'
             }}>
-              {/* Connection status */}
-              {mcpConnected ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.75rem',
-                  color: '#10B981',
-                  fontWeight: '500'
-                }}>
-                  <span style={{
-                    height: '0.5rem',
-                    width: '0.5rem',
-                    backgroundColor: '#10B981',
-                    borderRadius: '50%',
-                    display: 'inline-block'
-                  }}></span>
-                  MCP Connected
-                </div>
-              ) : (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.75rem',
-                  color: '#B91C1C',
-                  fontWeight: '500'
-                }}>
-                  <span style={{
-                    height: '0.5rem',
-                    width: '0.5rem',
-                    backgroundColor: '#B91C1C',
-                    borderRadius: '50%',
-                    display: 'inline-block'
-                  }}></span>
-                  {mcpError ? (
-                    <button 
-                      onClick={retryMcpConnection}
-                      disabled={isConnecting}
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        color: '#B91C1C',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        padding: 0
-                      }}
-                    >
-                      {isConnecting ? 'Connecting...' : 'MCP Disconnected - Retry'}
-                    </button>
-                  ) : (
-                    'MCP Disconnected'
-                  )}
-                </div>
-              )}
+              {/* Connection status and tools button */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                {mcpConnected ? (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: isMobile ? '0.65rem' : '0.75rem',
+                    color: '#10B981',
+                    fontWeight: '500'
+                  }}>
+                    <span style={{
+                      height: isMobile ? '0.4rem' : '0.5rem',
+                      width: isMobile ? '0.4rem' : '0.5rem',
+                      backgroundColor: '#10B981',
+                      borderRadius: '50%',
+                      display: 'inline-block'
+                    }}></span>
+                    {isMobile ? 'Connected' : 'MCP Connected'}
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: isMobile ? '0.65rem' : '0.75rem',
+                    color: '#B91C1C',
+                    fontWeight: '500'
+                  }}>
+                    <span style={{
+                      height: isMobile ? '0.4rem' : '0.5rem',
+                      width: isMobile ? '0.4rem' : '0.5rem',
+                      backgroundColor: '#B91C1C',
+                      borderRadius: '50%',
+                      display: 'inline-block'
+                    }}></span>
+                    {mcpError ? (
+                      <button 
+                        onClick={retryMcpConnection}
+                        disabled={isConnecting}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: '#B91C1C',
+                          fontSize: isMobile ? '0.65rem' : '0.75rem',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          padding: 0
+                        }}
+                      >
+                        {isConnecting ? 'Connecting...' : (isMobile ? 'Disconnected - Retry' : 'MCP Disconnected - Retry')}
+                      </button>
+                    ) : (
+                      isMobile ? 'Disconnected' : 'MCP Disconnected'
+                    )}
+                  </div>
+                )}
+                
+                {/* Tools button - moved here */}
+                <button
+                  onClick={() => setIsToolsModalOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: isMobile ? '0.2rem' : '0.25rem',
+                    backgroundColor: '#7FFFD4',
+                    borderRadius: '0.375rem',
+                    border: '1px solid black',
+                    boxShadow: isMobile ? '1px 1px 0 0 rgba(0,0,0,1)' : '2px 2px 0 0 rgba(0,0,0,1)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseOver={(e) => {
+                    if (!isMobile) {
+                      e.currentTarget.style.boxShadow = '3px 3px 0 0 rgba(0,0,0,1)';
+                      e.currentTarget.style.transform = 'translate(-1px, -1px)';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!isMobile) {
+                      e.currentTarget.style.boxShadow = '2px 2px 0 0 rgba(0,0,0,1)';
+                      e.currentTarget.style.transform = 'translate(0, 0)';
+                    }
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width={isMobile ? "14" : "16"} height={isMobile ? "14" : "16"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                  </svg>
+                </button>
+              </div>
               
               {/* Send button */}
               <button 
@@ -668,36 +719,40 @@ I can help you with financial market data and trading insights. Type your questi
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
-                  padding: '0.375rem 1rem',
-                  fontSize: '13px',
+                  padding: isMobile ? '0.25rem 0.75rem' : '0.375rem 1rem',
+                  fontSize: isMobile ? '12px' : '13px',
                   fontWeight: '600',
                   color: 'black',
                   backgroundColor: '#7FFFD4',
                   borderRadius: '0.375rem',
                   border: '2px solid black',
-                  boxShadow: '4px 4px 0 0 rgba(0,0,0,1)',
+                  boxShadow: isMobile ? '3px 3px 0 0 rgba(0,0,0,1)' : '4px 4px 0 0 rgba(0,0,0,1)',
                   transition: 'all 0.2s ease',
                   cursor: (isLoading || !input.trim()) ? 'not-allowed' : 'pointer'
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.boxShadow = '6px 6px 0 0 rgba(0,0,0,1)';
+                  if (!isMobile && !isLoading && input.trim()) {
+                    e.currentTarget.style.boxShadow = '6px 6px 0 0 rgba(0,0,0,1)';
+                  }
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.boxShadow = '4px 4px 0 0 rgba(0,0,0,1)';
+                  if (!isMobile) {
+                    e.currentTarget.style.boxShadow = '4px 4px 0 0 rgba(0,0,0,1)';
+                  }
                 }}
                 disabled={isLoading || !input.trim()}
               >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
-                  width="16" 
-                  height="16" 
+                  width={isMobile ? "14" : "16"}
+                  height={isMobile ? "14" : "16"}
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
                   strokeWidth="2" 
                   strokeLinecap="round" 
                   strokeLinejoin="round" 
-                  style={{ width: '16px', height: '16px' }}
+                  style={{ width: isMobile ? "14px" : "16px", height: isMobile ? "14px" : "16px" }}
                 >
                   <path d="m5 12 7-7 7 7"></path>
                   <path d="M12 19V5"></path>
