@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "alpha-vantage-trading": {
+      "command": "node",
+      "args": ["/path/to/mcp-trading/mcp-server.js"],
+      "env": {
+        "ALPHA_VANTAGE_API_KEY": "YOUR_API_KEY_HERE"
+      },
+      "cwd": "/path/to/mcp-trading"
+    }
+  }
+} 
