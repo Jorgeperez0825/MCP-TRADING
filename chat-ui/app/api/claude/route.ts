@@ -53,8 +53,11 @@ RESPONSE FORMAT:
 3. For each recommendation, briefly explain the reason (trend, volume, etc.)
 4. Conclude with an observation about the sector or overall market
 
-IMPORTANT: ALWAYS respond in English, regardless of the language used in the question.
-Make sure to mention specific stock symbols and their exact percentages from the provided data.`;
+IMPORTANT: 
+- ALWAYS respond in English, regardless of the language used in the question
+- Be concise and direct - focus on specific data points
+- ALWAYS include specific stock symbols and their exact percentages from the provided data
+- If multiple data types are provided, analyze and synthesize all of them for a comprehensive response`;
     } else {
       // System for general financial queries
       systemPrompt = `You are a financial advisor specializing in markets and trading.
@@ -67,9 +70,11 @@ When responding:
 - Mention risks associated with any suggestions
 - Emphasize the importance of diversification
 - Don't make specific stock recommendations without current data
+- Be extremely concise - use bullet points when appropriate
 
-IMPORTANT: ALWAYS respond in English, regardless of the language used in the question.
-If asked for specific investment recommendations for today, suggest that the user use the platform's special commands to get updated market data.`;
+IMPORTANT: 
+- ALWAYS respond in English, regardless of the language used in the question
+- If asked for specific investment recommendations for today, suggest that the user use the platform's special commands to get updated market data`;
     }
 
     // Construct the messages for Claude

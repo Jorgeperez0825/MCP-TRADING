@@ -277,34 +277,97 @@ I can help you with financial market data and trading insights. Type your questi
         userMessage.toLowerCase().includes('best stock') ||
         userMessage.toLowerCase().includes('mejor stock') ||
         userMessage.toLowerCase().includes('buy shares') ||
-        userMessage.toLowerCase().includes('comprar acciones');
+        userMessage.toLowerCase().includes('comprar acciones') ||
+        userMessage.toLowerCase().includes('market') ||
+        userMessage.toLowerCase().includes('mercado') ||
+        userMessage.toLowerCase().includes('stock') ||
+        userMessage.toLowerCase().includes('acciones');
 
       if (isInvestmentQuery) {
-        console.log("Investment query detected, getting market data directly");
+        console.log("Investment query detected, getting comprehensive market data");
         try {
           // Get market data directly
-          const loadingMessage = "Consulting current market data...";
+          const loadingMessage = "Analyzing markets and collecting data...";
             
           setMessages(prev => [...prev, { 
             text: loadingMessage, 
             isUser: false 
           }]);
           
-          // Get data directly from Alpha Vantage
-          const marketData = await fetch(`https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey=A0Y25M1WODQRWJR4`);
-          let marketDataJson;
+          // Get top gainers/losers data from Alpha Vantage
+          const gainersLosersPromise = fetch(`https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey=ZYB5S0UJN4147KGA`);
           
-          if (marketData.ok) {
-            marketDataJson = await marketData.json();
-            console.log("Alpha Vantage data received:", marketDataJson);
-          } else {
-            throw new Error("Couldn't connect to Alpha Vantage");
+          // Check if specific stocks are mentioned in the query
+          const stockRegex = /\b[A-Z]{1,5}\b/g;
+          const mentionedStocks = userMessage.match(stockRegex) || [];
+          
+          // Prepare promises for specific stock quotes if mentioned
+          const quotePromises = mentionedStocks.map(symbol => 
+            fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=ZYB5S0UJN4147KGA`)
+          );
+          
+          // Add S&P 500 overview for general market sentiment
+          const spyQuotePromise = fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPY&apikey=ZYB5S0UJN4147KGA`);
+          
+          // Get market sentiment based on news if no specific stocks mentioned
+          const newsSentimentPromise = mentionedStocks.length === 0 ? 
+            fetch(`https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=technology,finance&apikey=ZYB5S0UJN4147KGA`) : 
+            Promise.resolve(null);
+          
+          // Execute all promised API calls
+          const [gainersLosersResponse, spyQuoteResponse, ...quoteResponses] = await Promise.all([
+            gainersLosersPromise, 
+            spyQuotePromise,
+            ...quotePromises,
+            newsSentimentPromise
+          ]);
+          
+          // Process responses
+          interface MarketData {
+            topMovers?: any;
+            spyOverview?: any;
+            specificStocks?: Record<string, any>;
+            newsSentiment?: any;
           }
           
-          // Pass the data to Claude for analysis - use appropriate language
-          let promptWithData = `Here is the current market data:\n${JSON.stringify(marketDataJson, null, 2)}\n\nBased on this real-time data, ${userMessage}`;
+          let marketData: MarketData = {};
           
-          // Call Claude with the data included
+          if (gainersLosersResponse.ok) {
+            const gainersLosersData = await gainersLosersResponse.json();
+            marketData.topMovers = gainersLosersData;
+          }
+          
+          if (spyQuoteResponse.ok) {
+            const spyData = await spyQuoteResponse.json();
+            marketData.spyOverview = spyData;
+          }
+          
+          // Process individual stock quotes
+          if (quoteResponses.length > 0) {
+            marketData.specificStocks = {};
+            await Promise.all(quoteResponses.slice(0, mentionedStocks.length).map(async (response, index) => {
+              if (response && response.ok) {
+                const quoteData = await response.json();
+                if (marketData.specificStocks) {
+                  marketData.specificStocks[mentionedStocks[index]] = quoteData;
+                }
+              }
+            }));
+          }
+          
+          // Add news sentiment if requested
+          const lastResponse = quoteResponses[quoteResponses.length - 1];
+          if (lastResponse && mentionedStocks.length === 0 && lastResponse.ok) {
+            const newsData = await lastResponse.json();
+            marketData.newsSentiment = newsData;
+          }
+          
+          console.log("Collected market data:", Object.keys(marketData));
+          
+          // Pass the data to Claude for analysis
+          let promptWithData = `Here is the current market data:\n${JSON.stringify(marketData, null, 2)}\n\nBased on this real-time data, ${userMessage}`;
+          
+          // Call Claude with the comprehensive data included
           const claudeResponse = await anthropicService.generateResponse(promptWithData);
           
           // Update the loading message with the final response
@@ -341,14 +404,14 @@ I can help you with financial market data and trading insights. Type your questi
           try {
             const claudeResponse = await anthropicService.generateResponse(promptWithMockData);
             setMessages(prev => {
-              const loadingMessage = "Consulting current market data...";
+              const loadingMessage = "Analyzing markets and collecting data...";
               const withoutLoading = prev.filter(msg => msg.text !== loadingMessage);
               return [...withoutLoading, { text: claudeResponse, isUser: false }];
             });
           } catch (claudeError) {
             console.error("Error with Claude:", claudeError);
             setMessages(prev => {
-              const loadingMessage = "Consulting current market data...";
+              const loadingMessage = "Analyzing markets and collecting data...";
               const withoutLoading = prev.filter(msg => msg.text !== loadingMessage);
               return [...withoutLoading, { 
                 text: "I couldn't get updated market data. As a general recommendation, consider diversifying your portfolio with ETFs like SPY or QQQ.", 
