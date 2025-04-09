@@ -8,7 +8,7 @@ export class AnthropicService {
 
   private constructor() {
     this.baseUrl = 'https://api.anthropic.com/v1/messages';
-    this.model = 'claude-3-7-sonnet-20240620';
+    this.model = 'claude-3-7-sonnet-latest';
     this.apiBasePath = '/api';
   }
 

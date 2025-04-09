@@ -46,7 +46,7 @@ Always respond briefly and clearly. If asked about specific stocks, mention that
       
       // Crear la solicitud más simple posible
       const response = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20240620',
+        model: 'claude-3-7-sonnet-latest',
         max_tokens: 4000,
         system: systemPrompt,
         messages: [
