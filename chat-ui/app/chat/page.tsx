@@ -635,7 +635,7 @@ I can help you with financial market data and trading insights. Type your questi
       }
     } else {
       // Otherwise, submit the form as usual
-      handleSubmit(new Event('submit') as unknown as React.FormEvent<HTMLFormElement>);
+    handleSubmit(new Event('submit') as unknown as React.FormEvent<HTMLFormElement>);
     }
   };
 
@@ -693,6 +693,7 @@ I can help you with financial market data and trading insights. Type your questi
     if (!input.trim()) return;
       
     setIsLoading(true);
+    console.log("Form submitted with input:", input.substring(0, 50) + (input.length > 50 ? '...' : ''));
 
     // Add user message to the chat
     const userMessage: Message = {
@@ -712,6 +713,18 @@ I can help you with financial market data and trading insights. Type your questi
     setTimeout(() => scrollToBottom(), 100);
 
     try {
+      // Add a loading message to show the user something is happening
+      const loadingMessage: Message = {
+        id: 'loading',
+        role: 'assistant',
+        content: '⏳ Processing your request...',
+        timestamp: new Date().toISOString(),
+        isUser: false,
+        text: '⏳ Processing your request...'
+      };
+      
+      setMessages([...newMessages, loadingMessage]);
+
       // Check for stock analysis command
       const lowerInput = input.toLowerCase();
 
@@ -725,29 +738,33 @@ I can help you with financial market data and trading insights. Type your questi
           lowerInput.includes('best') ||
           lowerInput.includes('top'))) {
         
-        // Add a thinking message
-        setMessages([...newMessages, { 
-          id: 'thinking', 
-          role: 'thinking', 
-          content: `🔍 Analyzing current market conditions for investment opportunities...`, 
-          timestamp: new Date().toISOString()
-        }]);
+        // Update the loading message to show we're analyzing investments
+        setMessages(prev => prev.map(msg => 
+          msg.id === 'loading' 
+            ? { ...msg, content: '🔍 Analyzing current market conditions for investment opportunities...', text: '🔍 Analyzing current market conditions for investment opportunities...' } 
+            : msg
+        ));
         
         try {
           // Get stock symbols for popular tech stocks
           const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'];
+          console.log("Analyzing symbols:", symbols.join(", "));
+          
           const analysisPromises = symbols.map(symbol => mcpClient.current.getQuote(symbol));
           
           // Wait for all analyses to complete
           const results = await Promise.all(analysisPromises);
+          console.log("Quote results received for all symbols");
           
           // Create investment analyzer
           const investmentAnalyzer = createInvestmentAnalyzer(mcpClient.current);
+          console.log("Generating investment recommendations...");
           const recommendations = await investmentAnalyzer.generateRecommendations(symbols);
+          console.log("Recommendations generated successfully");
           
-          // Remove thinking message and add result
+          // Remove loading message and add result
           setMessages(prev => 
-            prev.filter(msg => msg.id !== 'thinking').concat({
+            prev.filter(msg => msg.id !== 'loading').concat({
               id: Date.now().toString(),
               content: recommendations,
               role: "assistant",
@@ -759,7 +776,7 @@ I can help you with financial market data and trading insights. Type your questi
         } catch (error) {
           console.error('Error generating investment advice:', error);
           setMessages(prev => 
-            prev.filter(msg => msg.id !== 'thinking').concat({
+            prev.filter(msg => msg.id !== 'loading').concat({
               id: Date.now().toString(),
               content: `Sorry, I couldn't generate investment recommendations at this time due to an error: ${error instanceof Error ? error.message : 'Unknown error'}. Would you like me to analyze a specific stock symbol instead?`,
               role: "assistant",
@@ -783,20 +800,21 @@ I can help you with financial market data and trading insights. Type your questi
           symbol = symbolMatch[0];
         }
         
-        // Add a thinking message
-        setMessages([...newMessages, { 
-          id: 'thinking', 
-          role: 'thinking', 
-          content: `🔍 Starting comprehensive analysis of ${symbol}...`, 
-          timestamp: new Date().toISOString()
-        }]);
+        // Update the loading message
+        setMessages(prev => prev.map(msg => 
+          msg.id === 'loading' 
+            ? { ...msg, content: `🔍 Starting comprehensive analysis of ${symbol}...`, text: `🔍 Starting comprehensive analysis of ${symbol}...` } 
+            : msg
+        ));
         
         try {
+          console.log(`Executing full analysis for ${symbol}...`);
           const result = await executeCommand('full_analysis', { symbol });
+          console.log("Analysis completed successfully");
           
-          // Remove thinking message and add result
+          // Remove loading message and add result
           setMessages(prev => 
-            prev.filter(msg => msg.id !== 'thinking').concat({
+            prev.filter(msg => msg.id !== 'loading').concat({
               id: Date.now().toString(),
               content: result,
               role: "assistant",
@@ -808,7 +826,7 @@ I can help you with financial market data and trading insights. Type your questi
         } catch (error) {
           console.error('Error during analysis:', error);
           setMessages(prev => 
-            prev.filter(msg => msg.id !== 'thinking').concat({
+            prev.filter(msg => msg.id !== 'loading').concat({
               id: Date.now().toString(),
               content: `Error analyzing ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
               role: "assistant",
@@ -822,44 +840,51 @@ I can help you with financial market data and trading insights. Type your questi
         return;
       }
 
-      // Add a loading message for non-analysis queries
-      setMessages([...newMessages, { 
-        id: 'loading', 
-        role: 'assistant', 
-        content: '...', 
-        timestamp: new Date().toISOString(),
-        isUser: false,
-        text: '...'
-      }]);
+      console.log("No special command detected, using Claude API...");
+      
+      // Update the loading message to show we're using Claude
+      setMessages(prev => prev.map(msg => 
+        msg.id === 'loading' 
+          ? { ...msg, content: '🤖 Consulting Claude for an answer...', text: '🤖 Consulting Claude for an answer...' } 
+          : msg
+      ));
       
       // Use the AnthropicService to generate a response
-      const response = await AnthropicService.getInstance().generateResponse(input);
+      console.log("Generating response with AnthropicService...");
+      const anthropicService = AnthropicService.getInstance();
+      
+      // First test the API connection
+      const apiConnected = await anthropicService.testApiConnection();
+      console.log("API connection test result:", apiConnected);
+      
+      const response = await anthropicService.generateResponse(input);
+      console.log("Response received from AnthropicService");
       
       // Remove the loading message and add the actual response
-      const assistantMessage: Message = {
-        id: Date.now().toString(),
-        content: response.response,
-        role: "assistant",
-        isUser: false,
-        text: response.response,
-        timestamp: new Date().toISOString()
-      };
-      
-      setMessages([...newMessages, assistantMessage]);
+      setMessages(prev => 
+        prev.filter(msg => msg.id !== 'loading').concat({
+          id: Date.now().toString(),
+          content: response.response,
+          role: "assistant",
+          isUser: false,
+          text: response.response,
+          timestamp: new Date().toISOString()
+        })
+      );
     } catch (error) {
       console.error('Error in chat submission:', error);
       
       // Remove loading message and add error message
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        content: "Sorry, there was an error processing your request. Please try again.",
-        role: "assistant",
-        isUser: false,
-        text: "Sorry, there was an error processing your request. Please try again.",
-        timestamp: new Date().toISOString()
-      };
-      
-      setMessages([...newMessages, errorMessage]);
+      setMessages(prev => 
+        prev.filter(msg => msg.id !== 'loading').concat({
+          id: Date.now().toString(),
+          content: `Sorry, there was an error processing your request: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+          role: "assistant",
+          isUser: false,
+          text: `Sorry, there was an error processing your request: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+          timestamp: new Date().toISOString()
+        })
+      );
     } finally {
       setIsLoading(false);
       setTimeout(() => scrollToBottom(), 100);
@@ -883,7 +908,7 @@ I can help you with financial market data and trading insights. Type your questi
           id: Date.now().toString(),
           role: 'thinking',
           content: `📊 Getting data: ${toolCall.name} for ${toolCall.input.symbol || 'market'}...`,
-          timestamp: new Date().toISOString(),
+            timestamp: new Date().toISOString(),
           toolCall: {
             name: toolCall.name,
             parameters: toolCall.input

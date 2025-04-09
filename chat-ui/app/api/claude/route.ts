@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
+// Método GET para comprobar que la ruta está accesible
+export async function GET() {
+  return NextResponse.json({ status: 'Claude API route is working' });
+}
+
 // API endpoint to handle Claude API calls
 export async function POST(request: NextRequest) {
+  console.log('Claude API route: POST request received');
+  
   try {
     const { prompt } = await request.json();
+    
+    console.log('Claude API route: Received prompt:', prompt?.substring(0, 50) + '...');
     
     // Get the API key from environment variable
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -12,7 +21,7 @@ export async function POST(request: NextRequest) {
     console.log("ANTHROPIC_API_KEY exists:", !!apiKey);
     if (apiKey) {
       // Solo mostramos los primeros caracteres por seguridad
-      console.log("ANTHROPIC_API_KEY prefix:", apiKey.substring(0, 10) + "...");
+      console.log("ANTHROPIC_API_KEY prefix:", apiKey.substring(0, 5) + "...");
     }
     
     if (!apiKey) {
@@ -92,7 +101,6 @@ Always respond briefly and clearly. If asked about specific stocks, mention that
     }
   } catch (error) {
     console.error('Error in Claude API route:', error);
-    console.error(JSON.stringify(error, null, 2));
     
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
