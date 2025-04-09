@@ -692,7 +692,7 @@ I can help you with financial market data and trading insights. Type your questi
     
     if (!input.trim()) return;
       
-    setIsLoading(true);
+      setIsLoading(true);
     console.log("Form submitted with input:", input.substring(0, 50) + (input.length > 50 ? '...' : ''));
 
     // Add user message to the chat
@@ -728,15 +728,44 @@ I can help you with financial market data and trading insights. Type your questi
       // Check for stock analysis command
       const lowerInput = input.toLowerCase();
 
+      // Enhanced pattern detection for market analysis queries
+      const isMarketAnalysisQuery = (
+        // English patterns
+        lowerInput.includes('market analysis') || 
+        lowerInput.includes('analyze market') ||
+        lowerInput.includes('analyze the market') ||
+        lowerInput.includes('market outlook') ||
+        lowerInput.includes('stocks') && (
+          lowerInput.includes('good') || 
+          lowerInput.includes('best') || 
+          lowerInput.includes('recommend') || 
+          lowerInput.includes('today') ||
+          lowerInput.includes('buy') ||
+          lowerInput.includes('analysis')
+        ) ||
+        // Spanish patterns
+        lowerInput.includes('análisis de mercado') ||
+        lowerInput.includes('analizar mercado') ||
+        lowerInput.includes('analizar el mercado') ||
+        lowerInput.includes('acciones') && (
+          lowerInput.includes('buenas') || 
+          lowerInput.includes('mejores') || 
+          lowerInput.includes('recomendar') || 
+          lowerInput.includes('hoy') ||
+          lowerInput.includes('comprar')
+        )
+      );
+
       // Check for investment advice queries
-      if (lowerInput.includes('stock') && (
-          lowerInput.includes('buy') || 
-          lowerInput.includes('worth') || 
-          lowerInput.includes('invest') || 
-          lowerInput.includes('recommendation') ||
-          lowerInput.includes('should i') ||
-          lowerInput.includes('best') ||
-          lowerInput.includes('top'))) {
+      if (isMarketAnalysisQuery || 
+          lowerInput.includes('stock') && (
+            lowerInput.includes('buy') || 
+            lowerInput.includes('worth') || 
+            lowerInput.includes('invest') || 
+            lowerInput.includes('recommendation') ||
+            lowerInput.includes('should i') ||
+            lowerInput.includes('best') ||
+            lowerInput.includes('top'))) {
         
         // Update the loading message to show we're analyzing investments
         setMessages(prev => prev.map(msg => 

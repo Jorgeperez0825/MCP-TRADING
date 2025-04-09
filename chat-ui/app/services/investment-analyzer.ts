@@ -166,29 +166,50 @@ export class InvestmentAnalyzer {
       
       // Generate detailed analysis context for the LLM
       const analysisContext = `
-Act as a professional financial advisor. Based on the following technical analysis of stocks, generate a detailed and well-founded investment recommendation for buying tomorrow:
+Act as a professional financial advisor with expertise in technical and fundamental analysis. Based on the following real-time technical analysis of stocks, generate a comprehensive and data-driven investment recommendation:
+
+CURRENT MARKET ANALYSIS: ${new Date().toLocaleDateString()}
 
 ${topRecommendations.map(rec => `
 SYMBOL: ${rec.symbol}
+TECHNICAL INDICATORS:
 - Current price: $${rec.analysis.price.toFixed(2)}
 - Recent change: ${rec.analysis.change >= 0 ? '+' : ''}${rec.analysis.change.toFixed(2)} (${rec.analysis.changePercent.toFixed(2)}%)
-- SMA (20 days): ${rec.analysis.sma.value.toFixed(2)} - Interpretation: ${rec.analysis.sma.signal}
-- MACD: ${rec.analysis.macd.value.toFixed(2)} - Interpretation: ${rec.analysis.macd.signal}
-- RSI (14 days): ${rec.analysis.rsi.value.toFixed(2)} - Interpretation: ${rec.analysis.rsi.signal}
-- Key factors: ${rec.analysis.reasons.join(', ')}
-- Total score: ${rec.score}/100
+- 20-day SMA: $${rec.analysis.sma.value.toFixed(2)} - Signal: ${rec.analysis.sma.signal}
+- MACD: ${rec.analysis.macd.value.toFixed(2)} - Signal: ${rec.analysis.macd.signal}
+- RSI (14): ${rec.analysis.rsi.value.toFixed(2)} - Signal: ${rec.analysis.rsi.signal}
+- Technical score: ${rec.score}/100
+- Key factors: ${rec.analysis.reasons.join('; ')}
 `).join('\n')}
 
-Based on this technical analysis, develop a detailed investment recommendation explaining why these symbols might be good opportunities to buy tomorrow.
+Based on this real-time technical analysis, develop a detailed investment recommendation with the following structure:
 
-Include:
-1. An introductory paragraph explaining the current market situation
-2. For each symbol: analysis of why it's a good opportunity, considering all technical indicators
-3. Recommended entry levels, price targets, and stop losses
-4. Risk considerations and recommended investment timeframe (short, medium, or long term)
-5. A concluding paragraph with your final recommendation
+1. MARKET OVERVIEW: Start with a concise assessment of the current market conditions based on the analyzed stocks.
 
-Format the response in a professional and easy-to-understand manner.
+2. STOCK ANALYSIS: For each recommended stock:
+   - Company overview and sector position
+   - Technical indicator interpretation (price vs SMA, MACD trends, RSI conditions)
+   - Potential catalysts or risks
+   - Clear buy/hold/sell recommendation
+
+3. ENTRY STRATEGY:
+   - Specific entry price points
+   - Stop-loss recommendations (specific price levels)
+   - Price targets (short and medium term)
+   - Position sizing suggestions
+
+4. RISK ASSESSMENT:
+   - Market-specific risks
+   - Stock-specific risks
+   - Appropriate investment timeframe
+   - Portfolio allocation considerations
+
+5. CONCLUSION:
+   - Summary of top recommendations
+   - Prioritization of opportunities
+   - Final investment advice
+
+Your analysis should be data-driven, professionally formatted, and actionable. Use bullet points where appropriate for clarity. Include specific numbers and percentages rather than vague statements.
 `;
 
       console.log('Generating recommendations with LLM...');
