@@ -244,10 +244,17 @@ I can help you with financial market data and trading insights. Type your questi
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Execute a command with improved error handling and logging
+  // Updated executeCommand function for proper MCP integration
   const executeCommand = async (command: string, params: any = {}) => {
     setIsLoading(true);
     console.log(`Executing command: ${command} with params:`, params);
+    
+    // Actualizar herramientas activas para mostrar más información al usuario
+    if (command === 'full_analysis') {
+      setActiveTools(['get_quote']);
+    } else {
+      setActiveTools([command]);
+    }
     
     try {
       let result;
@@ -303,6 +310,7 @@ I can help you with financial market data and trading insights. Type your questi
               step.id === 'market_quote' ? { ...step, status: 'active' } : step
             ));
             console.log(`Fetching quote for ${symbol}...`);
+            setActiveTools(['get_quote']);
             const quoteResult = await mcpClient.current.getQuote(symbol);
             console.log('Quote result:', quoteResult);
             
@@ -316,6 +324,7 @@ I can help you with financial market data and trading insights. Type your questi
               step.id === 'market_quote' ? { ...step, status: 'completed', result: quoteResult } : step
             ));
             console.log(`Calculating SMA for ${symbol}...`);
+            setActiveTools(['get_sma']);
             const smaResult = await mcpClient.current.getSMA(symbol, 'daily', 20);
             console.log('SMA result:', smaResult);
             
@@ -325,6 +334,7 @@ I can help you with financial market data and trading insights. Type your questi
               step.id === 'sma' ? { ...step, status: 'completed', result: smaResult } : step
             ));
             console.log(`Calculating MACD for ${symbol}...`);
+            setActiveTools(['get_macd']);
             const macdResult = await mcpClient.current.getMACD(symbol, 'daily', 'close');
             console.log('MACD result:', macdResult);
             
@@ -334,13 +344,12 @@ I can help you with financial market data and trading insights. Type your questi
               step.id === 'macd' ? { ...step, status: 'completed', result: macdResult } : step
             ));
             console.log(`Calculating RSI for ${symbol}...`);
+            setActiveTools(['get_rsi']);
             const rsiResult = await mcpClient.current.getRSI(symbol, 'daily', 14);
             console.log('RSI result:', rsiResult);
             
-            // Mark all steps as completed
-            setAnalysisSteps(prev => prev.map(step => 
-              step.id === 'rsi' ? { ...step, status: 'completed', result: rsiResult } : step
-            ));
+            // Limpiar herramientas activas
+            setActiveTools([]);
             
             // Format comprehensive analysis result
             let analysisMessage = `📊 Comprehensive Market Analysis for ${symbol}\n\n`;
@@ -932,12 +941,15 @@ I can help you with financial market data and trading insights. Type your questi
       try {
         setCurrentToolCall(toolCall);
         
+        // Actualizar herramientas activas para mostrar en la UI
+        setActiveTools(prev => [...prev, toolCall.name]);
+        
         // Add tool call message to UI
         const toolCallMessage: Message = {
           id: Date.now().toString(),
           role: 'thinking',
           content: `📊 Getting data: ${toolCall.name} for ${toolCall.input.symbol || 'market'}...`,
-            timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString(),
           toolCall: {
             name: toolCall.name,
             parameters: toolCall.input
@@ -977,12 +989,15 @@ I can help you with financial market data and trading insights. Type your questi
             throw new Error(`Unknown tool: ${toolCall.name}`);
         }
         
+        // Eliminar esta herramienta de las activas
+        setActiveTools(prev => prev.filter(tool => tool !== toolCall.name));
+        
         // Show result in UI
         const resultMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: `Result for ${toolCall.name} (${toolCall.input.symbol}): ${formatToolResult(result)}`,
-            timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString(),
           toolResult: result
         };
         
