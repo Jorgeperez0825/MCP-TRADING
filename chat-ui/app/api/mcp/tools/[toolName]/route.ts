@@ -5,8 +5,8 @@ import axios from 'axios';
 
 const execPromise = promisify(exec);
 
-// MCP server is running on port 3000
-const MCP_SERVER_URL = 'http://localhost:3000/tools';
+// MCP server is now running on port 3333
+const MCP_SERVER_URL = 'http://localhost:3333/tools';
 
 // This API route handles calls to specific MCP tools
 export async function POST(

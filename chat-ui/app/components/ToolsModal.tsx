@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 interface ToolsModalProps {
   isOpen: boolean;
@@ -6,150 +6,245 @@ interface ToolsModalProps {
   availableTools: any[];
   mcpConnected: boolean;
   mcpError: string | null;
+  activeTools?: string[]; // Herramientas actualmente en uso
+  toolProgress?: {[key: string]: number}; // Progreso de cada herramienta (0-100)
 }
-
-// Define a list of hardcoded tools to show what should be available
-const EXPECTED_TOOLS = [
-  {
-    name: "get_top_gainers_losers",
-    description: "Get top gainers, losers, and most actively traded US stocks",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_quote",
-    description: "Get global quote for a security",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_daily_data",
-    description: "Get daily time series stock data (OHLCV)",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_intraday_data",
-    description: "Get intraday time series stock data (OHLCV)",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_sma",
-    description: "Get Simple Moving Average (SMA) technical indicator",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_rsi",
-    description: "Get Relative Strength Index (RSI) technical indicator",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_macd",
-    description: "Get Moving Average Convergence/Divergence (MACD) values",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_bbands",
-    description: "Get Bollinger Bands (BBANDS) values",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_adx",
-    description: "Get Average Directional Movement Index (ADX) values",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_company_overview",
-    description: "Get company overview with fundamental data",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_income_statement",
-    description: "Get company income statement",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "get_news_sentiment",
-    description: "Get news sentiment for a specific ticker or tickers",
-    server: "alpha-vantage-trading"
-  },
-  {
-    name: "search_symbol",
-    description: "Search for a symbol by keywords",
-    server: "alpha-vantage-trading"
-  }
-];
 
 const ToolsModal: React.FC<ToolsModalProps> = ({ 
   isOpen, 
-  onClose
+  onClose, 
+  availableTools, 
+  mcpConnected, 
+  mcpError,
+  activeTools = [],
+  toolProgress = {}
 }) => {
-  const [isMobile, setIsMobile] = useState(false);
-  
-  // Detect mobile device
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-  
   if (!isOpen) return null;
-  
-  // Use the expected tools list for simplicity
-  const toolsToShow = EXPECTED_TOOLS;
-  
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-70"
-        onClick={onClose}
-      ></div>
-      
-      {/* Modal content */}
-      <div 
-        className="fixed top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white overflow-hidden z-50 border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
-        style={{
-          borderRadius: '6px',
-          width: isMobile ? '85%' : '240px', 
-          maxWidth: '280px',
-          maxHeight: isMobile ? '50vh' : '55vh'
-        }}
-      >
-        {/* Header */}
-        <div className="relative bg-[#7FFFD4] border-b border-black px-2 py-1.5">
-          <h2 className="text-[10px] font-bold text-center">Tools</h2>
-          
-          {/* Close button inside the header */}
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 50,
+      backdropFilter: 'blur(4px)'
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '0.5rem',
+        padding: '1.5rem',
+        maxWidth: '90%',
+        width: '500px',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+        border: '2px solid black',
+        boxShadow: '6px 6px 0 0 rgba(0,0,0,1)'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1rem'
+        }}>
+          <h2 style={{
+            fontSize: '1.25rem',
+            fontWeight: 'bold',
+            margin: 0
+          }}>Market Analysis Tools</h2>
           <button 
             onClick={onClose}
-            className="absolute top-0 right-0 text-black hover:text-gray-700 bg-[#fd94e6] border-l border-b border-black flex items-center justify-center"
             style={{
-              width: isMobile ? '16px' : '20px',
-              height: isMobile ? '16px' : '20px'
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1.5rem',
+              lineHeight: 1
             }}
+            aria-label="Close"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width={isMobile ? "8" : "10"} height={isMobile ? "8" : "10"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ×
           </button>
         </div>
-        
-        {/* Content with scroll */}
-        <div className="p-2 overflow-y-auto" style={{ maxHeight: isMobile ? '45vh' : '50vh' }}>
-          <div className="space-y-[3px]">
-            {toolsToShow.map((tool, index) => (
-              <div 
-                key={index} 
-                className="py-[2px] px-1 group hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-              >
-                <div className="font-medium text-[9px] text-blue-600">{tool.name}</div>
-                <div className="text-[8px] text-gray-600">{tool.description}</div>
+
+        {/* Connection Status */}
+        <div style={{
+          padding: '0.75rem',
+          marginBottom: '1rem',
+          borderRadius: '0.375rem',
+          backgroundColor: mcpConnected ? '#f0fff4' : '#fff5f5',
+          border: '1px solid',
+          borderColor: mcpConnected ? '#68d391' : '#fc8181',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          <span style={{
+            height: '0.75rem',
+            width: '0.75rem',
+            backgroundColor: mcpConnected ? '#38a169' : '#e53e3e',
+            borderRadius: '50%',
+            display: 'inline-block'
+          }}></span>
+          <span>
+            {mcpConnected 
+              ? 'Connected to market data services' 
+              : mcpError 
+                ? `Connection error: ${mcpError}` 
+                : 'Disconnected from market data services'}
+          </span>
+        </div>
+
+        {/* Tools List */}
+        <div style={{marginBottom: '1rem'}}>
+          <h3 style={{
+            fontSize: '1rem',
+            fontWeight: '600',
+            marginBottom: '0.5rem'
+          }}>Available Tools</h3>
+          
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem'
+          }}>
+            {mcpConnected && availableTools.length > 0 ? (
+              availableTools.map((tool, index) => (
+                <div 
+                  key={index}
+                  style={{
+                    padding: '0.75rem',
+                    borderRadius: '0.375rem',
+                    backgroundColor: activeTools.includes(tool.name) ? '#f0f9ff' : '#f9fafb',
+                    border: '1px solid',
+                    borderColor: activeTools.includes(tool.name) ? '#63b3ed' : '#e5e7eb',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <strong>{tool.name}</strong>
+                      <p style={{
+                        margin: '0.25rem 0 0 0',
+                        fontSize: '0.875rem',
+                        color: '#4b5563'
+                      }}>
+                        {tool.description || 'Financial market data tool'}
+                      </p>
+                    </div>
+                    
+                    {activeTools.includes(tool.name) && (
+                      <span style={{
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#3182ce',
+                        backgroundColor: '#ebf8ff',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '9999px'
+                      }}>
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Progress bar for tools in use */}
+                  {activeTools.includes(tool.name) && (
+                    <div style={{
+                      marginTop: '0.75rem',
+                      height: '0.5rem',
+                      width: '100%',
+                      backgroundColor: '#e5e7eb',
+                      borderRadius: '9999px',
+                      overflow: 'hidden'
+                    }}>
+                      <div 
+                        style={{
+                          height: '100%',
+                          width: `${toolProgress[tool.name] || 0}%`,
+                          backgroundColor: '#3182ce',
+                          borderRadius: '9999px',
+                          transition: 'width 0.3s ease'
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div style={{
+                padding: '0.75rem',
+                backgroundColor: '#f9fafb',
+                borderRadius: '0.375rem',
+                color: '#6b7280',
+                textAlign: 'center'
+              }}>
+                {mcpConnected 
+                  ? 'No tools available' 
+                  : 'Connect to see available tools'}
               </div>
-            ))}
+            )}
           </div>
+        </div>
+
+        {/* Research capabilities section */}
+        <div>
+          <h3 style={{
+            fontSize: '1rem',
+            fontWeight: '600',
+            marginBottom: '0.5rem'
+          }}>Research Capabilities</h3>
+          
+          <ul style={{
+            margin: 0,
+            padding: 0,
+            listStyleType: 'none'
+          }}>
+            <li style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0'
+            }}>
+              <span style={{color: '#3182ce'}}>✓</span>
+              <span>Real-time stock quotes and market data</span>
+            </li>
+            <li style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0'
+            }}>
+              <span style={{color: '#3182ce'}}>✓</span>
+              <span>Technical analysis indicators (RSI, MACD, Bollinger Bands)</span>
+            </li>
+            <li style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0'
+            }}>
+              <span style={{color: '#3182ce'}}>✓</span>
+              <span>Company fundamentals and financial statements</span>
+            </li>
+            <li style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0'
+            }}>
+              <span style={{color: '#3182ce'}}>✓</span>
+              <span>Market sentiment analysis from news sources</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>

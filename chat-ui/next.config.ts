@@ -1,5 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import { NextConfig } from 'next';
+
+const config: NextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   env: {
@@ -9,6 +10,14 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: [],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/mcp/:path*',
+        destination: 'http://localhost:3333/:path*'
+      }
+    ];
+  }
 };
 
-export default nextConfig;
+export default config;

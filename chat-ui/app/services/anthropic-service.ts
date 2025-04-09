@@ -1,11 +1,13 @@
-// Service to handle Anthropic API calls
+import axios from 'axios';
+
 export class AnthropicService {
   private static instance: AnthropicService;
-  private apiKey: string | undefined;
+  private baseUrl: string;
+  private model: string;
 
   private constructor() {
-    // Get API key from environment variable
-    this.apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || '';
+    this.baseUrl = 'https://api.anthropic.com/v1/messages';
+    this.model = 'claude-3-sonnet-20240229';
   }
 
   public static getInstance(): AnthropicService {
@@ -15,35 +17,57 @@ export class AnthropicService {
     return AnthropicService.instance;
   }
 
-  public async generateResponse(prompt: string, tools?: any[]): Promise<string> {
+  /**
+   * Generate a response from Claude using given prompt
+   */
+  async generateResponse(prompt: string): Promise<{
+    response: string;
+    toolCalls: any[];
+  }> {
     console.log("Calling Claude API with prompt:", prompt.substring(0, 100) + "...");
     
-    // We'll call the API through our own API endpoint for security
     try {
-      const response = await fetch('/api/claude', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt,
-          tools
-        }),
+      // Call our API endpoint that interfaces with Claude
+      const response = await axios.post('/api/claude', {
+        prompt
       });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error("Claude API error:", errorData);
-        throw new Error(`Failed to get response from Claude: ${response.status}`);
+      
+      if (!response.data) {
+        throw new Error('No response data');
       }
-
-      const data = await response.json();
-      return data.response;
+      
+      return {
+        response: response.data.response || '',
+        toolCalls: []
+      };
     } catch (error) {
       console.error('Error calling Claude API:', error);
+      
+      // Return mock response for testing purposes or in case of error
+      if (process.env.NODE_ENV === 'development') {
+        return this.getMockResponse(prompt);
+      }
+      
       throw error;
     }
   }
-}
 
-export default AnthropicService.getInstance(); 
+  /**
+   * Generate a mock response for testing
+   */
+  private getMockResponse(prompt: string): { response: string; toolCalls: any[] } {
+    // Check if prompt is about stocks
+    if (prompt.toLowerCase().includes('stock') || prompt.toLowerCase().includes('market')) {
+      return {
+        response: "I'd be happy to help with market analysis. To provide specific information about stocks, I would need data from financial APIs. For now, I can offer general information and answer questions about financial concepts.",
+        toolCalls: []
+      };
+    }
+    
+    // Default response
+    return {
+      response: "I'm a financial advisor that can help you analyze stocks and markets. What would you like to know?",
+      toolCalls: []
+    };
+  }
+} 

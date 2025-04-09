@@ -1,0 +1,80 @@
+{
+  "mcpServers": {
+    "alpha-vantage-trading": {
+      "command": "node",
+      "args": ["/Users/jorgeperez/mcp-trading/mcp-trading-new/mcp-server.js"],
+      "env": {
+        "ALPHA_VANTAGE_API_KEY": "ZYB5S0UJN4147KGA",
+        "PORT": "3333"
+      },
+      "cwd": "/Users/jorgeperez/mcp-trading/mcp-trading-new"
+    }
+  },
+  "tools": [
+    {
+      "name": "search_symbol",
+      "description": "Search for a symbol by keywords",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_quote",
+      "description": "Get global quote for a security",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_daily_data",
+      "description": "Get daily time series stock data (OHLCV)",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_intraday_data",
+      "description": "Get intraday time series stock data (OHLCV)",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_sma",
+      "description": "Get Simple Moving Average (SMA) technical indicator",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_rsi",
+      "description": "Get Relative Strength Index (RSI) technical indicator",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_macd",
+      "description": "Get Moving Average Convergence/Divergence (MACD) values",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_bbands",
+      "description": "Get Bollinger Bands (BBANDS) values",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_adx",
+      "description": "Get Average Directional Movement Index (ADX) values",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_company_overview",
+      "description": "Get company overview with fundamental data",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_income_statement",
+      "description": "Get company income statement",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_news_sentiment",
+      "description": "Get news sentiment for a specific ticker or tickers",
+      "server": "alpha-vantage-trading"
+    },
+    {
+      "name": "get_top_gainers_losers",
+      "description": "Get top gainers, losers, and most actively traded US stocks",
+      "server": "alpha-vantage-trading"
+    }
+  ]
+} 
