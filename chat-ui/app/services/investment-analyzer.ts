@@ -166,7 +166,7 @@ export class InvestmentAnalyzer {
       
       // Generate detailed analysis context for the LLM
       const analysisContext = `
-Act as a professional financial advisor with expertise in technical and fundamental analysis. Based on the following real-time technical analysis of stocks, generate a comprehensive and data-driven investment recommendation:
+Act as a professional financial advisor with expertise in technical and fundamental analysis. Based on the following real-time technical analysis of stocks, generate a concise and data-driven investment recommendation:
 
 CURRENT MARKET ANALYSIS: ${new Date().toLocaleDateString()}
 
@@ -182,40 +182,50 @@ TECHNICAL INDICATORS:
 - Key factors: ${rec.analysis.reasons.join('; ')}
 `).join('\n')}
 
-Based on this real-time technical analysis, develop a detailed investment recommendation with the following structure:
+Based on this real-time technical analysis, develop a clear and simple investment recommendation with the following structure:
 
-1. MARKET OVERVIEW: Start with a concise assessment of the current market conditions based on the analyzed stocks.
+MARKET OVERVIEW: Start with a concise assessment of the current market conditions based on the analyzed stocks.
 
-2. STOCK ANALYSIS: For each recommended stock:
-   - Company overview and sector position
-   - Technical indicator interpretation (price vs SMA, MACD trends, RSI conditions)
-   - Potential catalysts or risks
-   - Clear buy/hold/sell recommendation
+STOCK ANALYSIS: For each recommended stock:
+- Technical indicator interpretation (price vs SMA, MACD trends, RSI conditions)
+- Potential catalysts or risks
+- Clear buy/hold/sell recommendation
 
-3. ENTRY STRATEGY:
-   - Specific entry price points
-   - Stop-loss recommendations (specific price levels)
-   - Price targets (short and medium term)
-   - Position sizing suggestions
+ENTRY STRATEGY:
+- Entry price points
+- Stop-loss levels
+- Price targets (short and medium term)
+- Position sizing suggestions
 
-4. RISK ASSESSMENT:
-   - Market-specific risks
-   - Stock-specific risks
-   - Appropriate investment timeframe
-   - Portfolio allocation considerations
+RISK ASSESSMENT:
+- Market-specific risks
+- Portfolio allocation considerations
 
-5. CONCLUSION:
-   - Summary of top recommendations
-   - Prioritization of opportunities
-   - Final investment advice
+CONCLUSION:
+- Summary of top recommendations
+- Strategy summary
 
-Your analysis should be data-driven, professionally formatted, and actionable. Use bullet points where appropriate for clarity. Include specific numbers and percentages rather than vague statements.
+Present this in plain text without using markdown formatting such as *, **, #, ##, or ###. Keep the response clean and easy to read with simple formatting using only line breaks, dashes, and other basic characters. Your analysis should be data-driven and actionable but formatted in a way that works well in simple text interfaces. Use numbers (1, 2, 3) or dashes (-) for lists.
 `;
 
       console.log('Generating recommendations with LLM...');
       // Use the LLM to generate a detailed recommendation
       const anthropicResponse = await AnthropicService.getInstance().generateResponse(analysisContext);
-      const recommendation = anthropicResponse.response;
+      
+      // Clean up formatting in the response
+      let recommendation = anthropicResponse.response;
+      
+      // Remove markdown headers
+      recommendation = recommendation.replace(/#+\s+(.*?)$/gm, '$1');
+      
+      // Remove bold and italic formatting
+      recommendation = recommendation.replace(/\*\*(.*?)\*\*/g, '$1');
+      recommendation = recommendation.replace(/\*(.*?)\*/g, '$1');
+      
+      // Remove other markdown formatting
+      recommendation = recommendation.replace(/__(.*?)__/g, '$1');
+      recommendation = recommendation.replace(/_(.*?)_/g, '$1');
+      
       console.log('Recommendation generated successfully');
       
       return recommendation;

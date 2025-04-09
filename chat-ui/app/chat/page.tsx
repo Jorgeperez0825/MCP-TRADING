@@ -383,13 +383,13 @@ I can help you with financial market data and trading insights. Type your questi
               analysisMessage += `Overall Trend: 🟢 Bullish (${bullCount}/${signals.length} indicators)\n`;
             } else if (bearCount > bullCount) {
               analysisMessage += `Overall Trend: 🔴 Bearish (${bearCount}/${signals.length} indicators)\n`;
-      } else {
+            } else {
               analysisMessage += `Overall Trend: 🟡 Neutral (mixed signals)\n`;
-      }
-      
+            }
+            
             result = analysisMessage;
             
-    } catch (error) {
+          } catch (error) {
             console.error('Analysis error:', error);
             // Mark failed step and throw error
             setAnalysisSteps(prev => prev.map(step => 
@@ -399,24 +399,24 @@ I can help you with financial market data and trading insights. Type your questi
           }
           break;
         
-      case 'get_quote':
+        case 'get_quote':
           console.log(`Fetching quote for ${params.symbol}...`);
           result = await mcpClient.current.getQuote(params.symbol);
           break;
         
-      case 'get_sma':
+        case 'get_sma':
           console.log(`Calculating SMA for ${params.symbol}...`);
           result = await mcpClient.current.getSMA(
-          params.symbol, 
+            params.symbol, 
             params.interval || 'daily', 
             params.time_period || 20
           );
           break;
         
-      case 'get_macd':
+        case 'get_macd':
           console.log(`Calculating MACD for ${params.symbol}...`);
           result = await mcpClient.current.getMACD(
-          params.symbol, 
+            params.symbol, 
             params.interval || 'daily', 
             params.series_type || 'close'
           );
@@ -425,13 +425,13 @@ I can help you with financial market data and trading insights. Type your questi
         case 'get_rsi':
           console.log(`Calculating RSI for ${params.symbol}...`);
           result = await mcpClient.current.getRSI(
-          params.symbol, 
+            params.symbol, 
             params.interval || 'daily', 
             params.time_period || 14
           );
           break;
         
-      default:
+        default:
           throw new Error(`Unknown command: ${command}`);
       }
       
@@ -538,10 +538,10 @@ I can help you with financial market data and trading insights. Type your questi
             setMessages(prev => 
               prev.filter(msg => msg.id !== 'thinking').concat({
                 id: Date.now().toString(),
-                content: recommendations,
+                content: formatFinancialResponse(recommendations),
                 role: "assistant",
                 isUser: false,
-                text: recommendations,
+                text: formatFinancialResponse(recommendations),
                 timestamp: new Date().toISOString()
               })
             );
@@ -568,7 +568,7 @@ I can help you with financial market data and trading insights. Type your questi
           }
           
           // Add thinking message
-          setMessages(prev => [...prev, {
+          setMessages(prev => [...prev, { 
             id: 'thinking',
             role: 'thinking',
             content: `🔍 Starting comprehensive analysis of ${symbol}...`,
@@ -582,10 +582,10 @@ I can help you with financial market data and trading insights. Type your questi
             setMessages(prev => 
               prev.filter(msg => msg.id !== 'thinking').concat({
                 id: Date.now().toString(),
-                content: result,
+                content: formatFinancialResponse(result),
                 role: "assistant",
                 isUser: false,
-                text: result,
+                text: formatFinancialResponse(result),
                 timestamp: new Date().toISOString()
               })
             );
@@ -795,10 +795,10 @@ I can help you with financial market data and trading insights. Type your questi
           setMessages(prev => 
             prev.filter(msg => msg.id !== 'loading').concat({
               id: Date.now().toString(),
-              content: recommendations,
+              content: formatFinancialResponse(recommendations),
               role: "assistant",
               isUser: false,
-              text: recommendations,
+              text: formatFinancialResponse(recommendations),
               timestamp: new Date().toISOString()
             })
           );
@@ -845,10 +845,10 @@ I can help you with financial market data and trading insights. Type your questi
           setMessages(prev => 
             prev.filter(msg => msg.id !== 'loading').concat({
               id: Date.now().toString(),
-              content: result,
+              content: formatFinancialResponse(result),
               role: "assistant",
               isUser: false,
-              text: result,
+              text: formatFinancialResponse(result),
               timestamp: new Date().toISOString()
             })
           );
@@ -893,10 +893,10 @@ I can help you with financial market data and trading insights. Type your questi
       setMessages(prev => 
         prev.filter(msg => msg.id !== 'loading').concat({
           id: Date.now().toString(),
-          content: response.response,
+          content: formatFinancialResponse(response.response),
           role: "assistant",
           isUser: false,
-          text: response.response,
+          text: formatFinancialResponse(response.response),
           timestamp: new Date().toISOString()
         })
       );
@@ -1007,14 +1007,14 @@ I can help you with financial market data and trading insights. Type your questi
         currentMessages = [...currentMessages, toolResultMessage];
         
         // Get next response from Claude
-        const { response, toolCalls: nextToolCalls } = await AnthropicService.getInstance().generateResponse(
+        const { response: nextResponse, toolCalls: nextToolCalls } = await AnthropicService.getInstance().generateResponse(
           '' // No new user input, just process the tool result
         );
         
         // Update conversation messages
         currentMessages = [...currentMessages, {
           role: 'assistant',
-          content: response
+          content: nextResponse
         }];
         
         setConversationMessages(currentMessages);
@@ -1024,7 +1024,7 @@ I can help you with financial market data and trading insights. Type your questi
           const finalResponseMessage: Message = {
             id: Date.now().toString(),
             role: 'assistant',
-            content: response,
+            content: nextResponse,
             timestamp: new Date().toISOString()
           };
           
@@ -1216,17 +1216,22 @@ I can help you with financial market data and trading insights. Type your questi
   
   // Format financial responses to display data more clearly
   const formatFinancialResponse = (response: string): string => {
-    // Replace JSON data with formatted tables
+    // Remove existing markdown formatting
     let formattedResponse = response;
     
-    // Replace stock price data formatting with bold numbers and colors
-    formattedResponse = formattedResponse.replace(/(\$\d+\.\d+|\d+\.\d+%|\+\d+\.\d+%|\-\d+\.\d+%)/g, '**$1**');
+    // Remove markdown headers (# and ##)
+    formattedResponse = formattedResponse.replace(/#+\s+(.*?)$/gm, '$1');
     
-    // Format stock symbols in all caps with bold
-    formattedResponse = formattedResponse.replace(/\b([A-Z]{2,5})\b(?!\:)/g, '**$1**');
+    // Remove bold and italic formatting
+    formattedResponse = formattedResponse.replace(/\*\*(.*?)\*\*/g, '$1');
+    formattedResponse = formattedResponse.replace(/\*(.*?)\*/g, '$1');
     
-    // Format section headers with bold
-    formattedResponse = formattedResponse.replace(/^(.*?\:)$/gm, '**$1**');
+    // Remove other common markdown formatting
+    formattedResponse = formattedResponse.replace(/__(.*?)__/g, '$1');
+    formattedResponse = formattedResponse.replace(/_(.*?)_/g, '$1');
+    
+    // Simplify any excessive formatting
+    formattedResponse = formattedResponse.replace(/\n\s*\n\s*\n/g, '\n\n'); // Reduce multiple line breaks
     
     return formattedResponse;
   };

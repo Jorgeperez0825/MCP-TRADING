@@ -42,6 +42,9 @@ export class AnthropicService {
   }> {
     console.log("Calling Claude API with prompt:", prompt.substring(0, 100) + "...");
     
+    // Add formatting instructions to ensure plain text responses
+    const promptWithFormatting = prompt + `\n\nIMPORTANT: Your response should be in plain text. Do not use markdown formatting like *, **, #, ##, or any other special characters for formatting. Use simple line breaks, dashes (-), and plain text formatting only.`;
+    
     try {
       // First test if the API is reachable
       const isApiConnected = await this.testApiConnection();
@@ -52,7 +55,7 @@ export class AnthropicService {
       
       // Call our API endpoint that interfaces with Claude
       const response = await axios.post(`${this.apiBasePath}/claude`, {
-        prompt
+        prompt: promptWithFormatting
       });
       
       console.log('API response status:', response.status);
